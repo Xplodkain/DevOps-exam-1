@@ -1,0 +1,74 @@
+version: '3.8'
+
+
+
+services:
+
+  nginx:
+    image: nginx:latest
+
+    volumes:
+     - ./nginx.conf/nginx.conf:/etc/nginx/conf.d/default.conf
+     - static:/static
+    depends_on:
+      - db
+      - app
+    ports:
+     - '80:80'
+    networks:
+      - db
+      - front
+      
+  db:
+    image: postgres:14
+    restart: always
+
+    environment:
+      POSTGRES_PASSWORD: gutendex
+      POSTGRES_HOST: db
+      POSTGRES_USER: gutendex
+      POSTGRES_DB: gutendex
+      PGDATA: /home/develeap/Desktop/vlad/Exam_1_vlad/gutendex
+      POSTGRES_HOST_AUTH_METHOD: trust
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gutendex"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    ports:
+      - '5432:5432'
+    hostname: db
+    networks:
+      - db
+    volumes:
+      - db:/data/postgres
+      - ./scheme:/docker-entrypoint-initdb.d
+  
+  
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # ports:
+    #   - '80:80'
+    depends_on:
+      db: 
+        condition: service_healthy
+    env_file: ./gutendex/.env
+    volumes:
+      - static:/var/www/gutendex/static-root
+       
+   
+    networks:
+     - db
+     - front
+
+
+
+
+networks:
+  db:
+  front:
+volumes:
+  db:
+  static:
